@@ -13,7 +13,7 @@ import {
   type Accessor,
 } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { useLocation, useNavigate, useParams } from "@solidjs/router"
+import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
 import { useLayout, LocalProject } from "@/context/layout"
 import { useServerSync } from "@/context/server-sync"
 import { Persist, persisted } from "@/utils/persist"
@@ -135,6 +135,15 @@ export default function Layout(props: ParentProps) {
   createEffect(() => setV2Toast(newDesign()))
   const initialDirectory = decode64(params.dir)
   const location = useLocation()
+  const [searchParams] = useSearchParams<{ returnTo?: string }>()
+  const devcenterUrl = createMemo(() => {
+    const fromQuery = searchParams.returnTo
+    if (fromQuery) {
+      localStorage.setItem("devcenter-return-to", fromQuery)
+      return fromQuery
+    }
+    return localStorage.getItem("devcenter-return-to") || undefined
+  })
   const route = createMemo(() => {
     const slug = params.dir
     if (!slug) return { slug, dir: "" }
@@ -2341,6 +2350,12 @@ export default function Layout(props: ParentProps) {
       openProjectKeybind={() => command.keybind("project.open")}
       onOpenProject={chooseProject}
       renderProjectOverlay={projectOverlay}
+      devcenterLabel={() => "Back to DevCenter"}
+      devcenterUrl={devcenterUrl}
+      onOpenDevcenter={() => {
+        const url = devcenterUrl()
+        if (url) window.location.href = url
+      }}
       settingsLabel={() => language.t("sidebar.settings")}
       settingsKeybind={() => command.keybind("settings.open")}
       onOpenSettings={openSettings}
