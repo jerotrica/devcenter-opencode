@@ -986,12 +986,17 @@ function NewSessionTabItem(props: { ref?: HTMLDivElement; href: string; title: s
 }
 
 function ChannelIndicator() {
+  const navigate = useNavigate()
   return (
     <>
       {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
-        <div class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono">
+        <button
+          type="button"
+          class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono border-0"
+          onClick={() => navigate("/devcenter")}
+        >
           {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}
-        </div>
+        </button>
       )}
     </>
   )
