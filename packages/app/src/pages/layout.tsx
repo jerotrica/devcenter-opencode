@@ -2350,11 +2350,10 @@ export default function Layout(props: ParentProps) {
       openProjectKeybind={() => command.keybind("project.open")}
       onOpenProject={chooseProject}
       renderProjectOverlay={projectOverlay}
-      devcenterLabel={() => "Back to DevCenter"}
-      devcenterUrl={devcenterUrl}
+      devcenterLabel={() => "DevCenter"}
+      devcenterUrl={() => "/devcenter"}
       onOpenDevcenter={() => {
-        const url = devcenterUrl()
-        if (url) window.location.href = url
+        navigate("/devcenter")
       }}
       settingsLabel={() => language.t("sidebar.settings")}
       settingsKeybind={() => command.keybind("settings.open")}

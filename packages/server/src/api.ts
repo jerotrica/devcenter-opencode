@@ -18,6 +18,7 @@ import { LocationGroup } from "./groups/location"
 import { IntegrationGroup } from "./groups/integration"
 import { CredentialGroup } from "./groups/credential"
 import { ProjectCopyGroup } from "./groups/project-copy"
+import { DevcenterGroup } from "./groups/devcenter"
 
 export const Api = HttpApi.make("server")
   .add(HealthGroup)
@@ -37,6 +38,7 @@ export const Api = HttpApi.make("server")
   .add(QuestionGroup)
   .add(ReferenceGroup)
   .add(ProjectCopyGroup)
+  .add(DevcenterGroup)
   .annotateMerge(
     OpenApi.annotations({
       title: "opencode HttpApi",
