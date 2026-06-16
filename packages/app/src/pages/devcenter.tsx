@@ -1,30 +1,17 @@
 import { createSignal, createResource, For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { base64Encode } from "@opencode-ai/core/util/encode"
-import { useServer } from "@/context/server"
-import { DevcenterApi } from "@/devcenter/api"
+import * as api from "@/devcenter/api"
 import type { DevcenterGroup, DevcenterRepo } from "@/devcenter/types"
 import { Button } from "@opencode-ai/ui/button"
 
-function useDevcenterApi(): DevcenterApi | null {
-  const server = useServer()
-  const conn = server.current
-  if (!conn) return null
-  if (!conn.http.password) return null
-  return new DevcenterApi(conn.http.url, conn.http.username ?? "opencode", conn.http.password)
-}
-
 const Devcenter: Component = () => {
-  const api = useDevcenterApi()
   const navigate = useNavigate()
-  const [groups, { refetch: refetchGroups }] = createResource(
-    () => api,
-    async (a) => (a ? a.listGroups() : []),
-  )
+  const [groups, { refetch: refetchGroups }] = createResource(api.listGroups)
   const [selectedSlug, setSelectedSlug] = createSignal<string | null>(null)
   const [repos, { refetch: refetchRepos }] = createResource(
-    () => ({ api: api, slug: selectedSlug() }),
-    async ({ api: a, slug }) => (a && slug ? a.listRepos(slug) : []),
+    () => selectedSlug(),
+    (slug) => (slug ? api.listRepos(slug) : []),
   )
 
   const [showCreateGroup, setShowCreateGroup] = createSignal(false)
@@ -47,11 +34,10 @@ const Devcenter: Component = () => {
   }
 
   async function createGroup() {
-    const a = api
-    if (!a || !newGroupName().trim()) return
+    if (!newGroupName().trim()) return
     setError("")
     try {
-      const group = await a.createGroup(newGroupName().trim(), newGroupDesc().trim() || undefined)
+      const group = await api.createGroup(newGroupName().trim(), newGroupDesc().trim() || undefined)
       setShowCreateGroup(false)
       setNewGroupName("")
       setNewGroupDesc("")
@@ -63,12 +49,11 @@ const Devcenter: Component = () => {
   }
 
   async function createRepo() {
-    const a = api
     const slug = selectedSlug()
-    if (!a || !slug || !newRepoName().trim()) return
+    if (!slug || !newRepoName().trim()) return
     setError("")
     try {
-      await a.createRepo(slug, newRepoName().trim())
+      await api.createRepo(slug, newRepoName().trim())
       setShowCreateRepo(false)
       setNewRepoName("")
       await refetchRepos()
@@ -78,12 +63,11 @@ const Devcenter: Component = () => {
   }
 
   async function cloneRepo() {
-    const a = api
     const slug = selectedSlug()
-    if (!a || !slug || !newRepoName().trim() || !newRepoUrl().trim()) return
+    if (!slug || !newRepoName().trim() || !newRepoUrl().trim()) return
     setError("")
     try {
-      await a.cloneRepo(slug, newRepoName().trim(), newRepoUrl().trim())
+      await api.cloneRepo(slug, newRepoName().trim(), newRepoUrl().trim())
       setShowCloneRepo(false)
       setNewRepoName("")
       setNewRepoUrl("")

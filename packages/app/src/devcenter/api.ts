@@ -1,65 +1,55 @@
 import type { DevcenterGroup, DevcenterRepo, DevcenterError } from "./types"
 
-export class DevcenterApi {
-  private baseUrl: string
-  private authHeader: string
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  })
 
-  constructor(baseUrl: string, username: string, password: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, "")
-    this.authHeader = `Basic ${btoa(`${username}:${password}`)}`
+  if (!res.ok) {
+    const error: DevcenterError = await res.json().catch(() => ({
+      error: "Unknown",
+      message: `HTTP ${res.status}`,
+    }))
+    throw new Error(error.message || `HTTP ${res.status}`)
   }
 
-  private async request<T>(path: string, options?: RequestInit): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      ...options,
-      headers: {
-        ...options?.headers,
-        Authorization: this.authHeader,
-        "Content-Type": "application/json",
-      },
-    })
+  return res.json()
+}
 
-    if (!res.ok) {
-      const error: DevcenterError = await res.json().catch(() => ({
-        error: "Unknown",
-        message: `HTTP ${res.status}`,
-      }))
-      throw new Error(error.message || `HTTP ${res.status}`)
-    }
+export async function listGroups(): Promise<DevcenterGroup[]> {
+  return request("/api/devcenter/groups")
+}
 
-    return res.json()
-  }
+export async function getGroup(slug: string): Promise<DevcenterGroup> {
+  return request(`/api/devcenter/groups/${slug}`)
+}
 
-  async listGroups(): Promise<DevcenterGroup[]> {
-    return this.request("/api/devcenter/groups")
-  }
+export async function createGroup(name: string, description?: string): Promise<DevcenterGroup> {
+  return request("/api/devcenter/groups", {
+    method: "POST",
+    body: JSON.stringify({ name, description }),
+  })
+}
 
-  async getGroup(slug: string): Promise<DevcenterGroup> {
-    return this.request(`/api/devcenter/groups/${slug}`)
-  }
+export async function listRepos(groupSlug: string): Promise<DevcenterRepo[]> {
+  return request(`/api/devcenter/groups/${groupSlug}/repos`)
+}
 
-  async createGroup(name: string, description?: string): Promise<DevcenterGroup> {
-    return this.request("/api/devcenter/groups", {
-      method: "POST",
-      body: JSON.stringify({ name, description }),
-    })
-  }
+export async function createRepo(groupSlug: string, name: string): Promise<DevcenterRepo> {
+  return request(`/api/devcenter/groups/${groupSlug}/repos/create`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  })
+}
 
-  async listRepos(groupSlug: string): Promise<DevcenterRepo[]> {
-    return this.request(`/api/devcenter/groups/${groupSlug}/repos`)
-  }
-
-  async createRepo(groupSlug: string, name: string): Promise<DevcenterRepo> {
-    return this.request(`/api/devcenter/groups/${groupSlug}/repos/create`, {
-      method: "POST",
-      body: JSON.stringify({ name }),
-    })
-  }
-
-  async cloneRepo(groupSlug: string, name: string, gitUrl: string): Promise<DevcenterRepo> {
-    return this.request(`/api/devcenter/groups/${groupSlug}/repos/clone`, {
-      method: "POST",
-      body: JSON.stringify({ name, git_url: gitUrl }),
-    })
-  }
+export async function cloneRepo(groupSlug: string, name: string, gitUrl: string): Promise<DevcenterRepo> {
+  return request(`/api/devcenter/groups/${groupSlug}/repos/clone`, {
+    method: "POST",
+    body: JSON.stringify({ name, git_url: gitUrl }),
+  })
 }
