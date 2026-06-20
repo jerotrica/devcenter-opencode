@@ -17,6 +17,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(error.message || `HTTP ${res.status}`)
   }
 
+  if (res.status === 204) {
+    return undefined as T
+  }
+
   return res.json()
 }
 
@@ -51,4 +55,12 @@ export async function cloneRepo(groupSlug: string, name: string, gitUrl: string)
     method: "POST",
     body: JSON.stringify({ name, git_url: gitUrl }),
   })
+}
+
+export async function deleteGroup(slug: string): Promise<void> {
+  await request(`/api/devcenter/groups/${slug}`, { method: "DELETE" })
+}
+
+export async function deleteRepo(groupSlug: string, repoSlug: string): Promise<void> {
+  await request(`/api/devcenter/groups/${groupSlug}/repos/${repoSlug}`, { method: "DELETE" })
 }

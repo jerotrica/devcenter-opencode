@@ -30,6 +30,7 @@ export type DevcenterError = {
 }
 
 const WORKSPACES_DIR = process.env.WORKSPACES_DIR ?? "/workspaces"
+const TRASH_DIR = path.join(WORKSPACES_DIR, ".trash")
 
 export function toSlug(name: string): string {
   return name
@@ -253,4 +254,70 @@ export async function cloneRepo(groupSlug: string, name: string, gitUrl: string)
     created_at: stat.birthtimeMs || stat.ctimeMs,
     updated_at: stat.mtimeMs,
   }
+}
+
+type TrashEntry = {
+  type: "group" | "repo"
+  originalPath: string
+  groupSlug?: string
+  slug: string
+  deletedAt: number
+}
+
+async function trashDir(): Promise<string> {
+  await fs.mkdir(TRASH_DIR, { recursive: true })
+  return TRASH_DIR
+}
+
+function writeTrashMeta(metaPath: string, entry: TrashEntry): Promise<void> {
+  return fs.writeFile(metaPath, JSON.stringify(entry, null, 2))
+}
+
+function safeTrashPath(sourcePath: string, prefix: string, slug: string): string {
+  const ts = Date.now()
+  const trashTarget = path.join(TRASH_DIR, `${ts}-${prefix}-${slug}`)
+  if (!trashTarget.startsWith(TRASH_DIR)) {
+    throw new Error("Path traversal detected in trash operation")
+  }
+  return trashTarget
+}
+
+export async function deleteGroup(slug: string): Promise<void> {
+  const groupPath = safeWorkspacePath(WORKSPACES_DIR, slug)
+  const stat = await fs.stat(groupPath).catch(() => null)
+  if (!stat || !stat.isDirectory()) throw new Error("Group not found")
+
+  const trashTarget = safeTrashPath(groupPath, "group", slug)
+  const trashDirPath = await trashDir()
+  await fs.rename(groupPath, trashTarget)
+
+  const metaPath = path.join(trashDirPath, `${path.basename(trashTarget)}.meta.json`)
+  await writeTrashMeta(metaPath, {
+    type: "group",
+    originalPath: groupPath,
+    slug,
+    deletedAt: Date.now(),
+  })
+}
+
+export async function deleteRepo(groupSlug: string, repoSlug: string): Promise<void> {
+  const group = await getGroup(groupSlug)
+  if (!group) throw new Error("Group not found")
+
+  const repoPath = safeWorkspacePath(group.path, repoSlug)
+  const stat = await fs.stat(repoPath).catch(() => null)
+  if (!stat || !stat.isDirectory()) throw new Error("Repo not found")
+
+  const trashTarget = safeTrashPath(repoPath, "repo", `${groupSlug}-${repoSlug}`)
+  const trashDirPath = await trashDir()
+  await fs.rename(repoPath, trashTarget)
+
+  const metaPath = path.join(trashDirPath, `${path.basename(trashTarget)}.meta.json`)
+  await writeTrashMeta(metaPath, {
+    type: "repo",
+    originalPath: repoPath,
+    groupSlug,
+    slug: repoSlug,
+    deletedAt: Date.now(),
+  })
 }

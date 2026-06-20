@@ -1861,6 +1861,7 @@ export default function Page() {
       </div>
 
       <TerminalPanel />
+      <div class="md:hidden h-0 pb-[env(safe-area-inset-bottom,0px)]" />
     </div>
   )
 }

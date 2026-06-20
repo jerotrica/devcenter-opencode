@@ -1,5 +1,5 @@
 import { Effect } from "effect"
-import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { HttpApiBuilder, HttpApiSchema } from "effect/unstable/httpapi"
 import { Api } from "../api"
 import * as workspaces from "../devcenter/workspaces"
 import { InvalidRequestError, ConflictError } from "../errors"
@@ -70,6 +70,18 @@ export const DevcenterHandler = HttpApiBuilder.group(Api, "server.devcenter", (h
               : new InvalidRequestError({ message, kind: "devcenter" })
           },
         }),
+      )
+      .handle("devcenter.groups.remove", (ctx) =>
+        Effect.tryPromise({
+          try: () => workspaces.deleteGroup(ctx.params.slug),
+          catch: toError,
+        }).pipe(Effect.as(HttpApiSchema.NoContent.make())),
+      )
+      .handle("devcenter.repos.remove", (ctx) =>
+        Effect.tryPromise({
+          try: () => workspaces.deleteRepo(ctx.params.slug, ctx.params.repoSlug),
+          catch: toError,
+        }).pipe(Effect.as(HttpApiSchema.NoContent.make())),
       )
   }),
 )

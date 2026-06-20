@@ -992,7 +992,7 @@ function ChannelIndicator() {
       {["beta", "dev"].includes(import.meta.env.VITE_OPENCODE_CHANNEL) && (
         <button
           type="button"
-          class="bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono border-0"
+          class="channel-indicator bg-icon-interactive-base text-[#FFF] font-medium px-2 rounded-sm uppercase font-mono border-0 cursor-pointer"
           onClick={() => navigate("/devcenter")}
         >
           {import.meta.env.VITE_OPENCODE_CHANNEL.toUpperCase()}

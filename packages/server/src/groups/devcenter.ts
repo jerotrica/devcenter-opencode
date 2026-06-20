@@ -1,8 +1,10 @@
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 import { InvalidRequestError, ConflictError } from "../errors"
 
 const Slug = Schema.String
+
+const RepoSlug = Schema.String
 
 const GroupPayload = Schema.Struct({
   name: Schema.String,
@@ -115,6 +117,32 @@ export const DevcenterGroup = HttpApiGroup.make("server.devcenter")
         identifier: "v2.devcenter.repos.clone",
         summary: "Clone repo into group",
         description: "Clone a git repository into a workspace group.",
+      }),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.delete("devcenter.groups.remove", "/api/devcenter/groups/:slug", {
+      params: Schema.Struct({ slug: Slug }),
+      success: HttpApiSchema.NoContent,
+      error: [InvalidRequestError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "v2.devcenter.groups.remove",
+        summary: "Remove workspace group",
+        description: "Move a workspace group to trash.",
+      }),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.delete("devcenter.repos.remove", "/api/devcenter/groups/:slug/repos/:repoSlug", {
+      params: Schema.Struct({ slug: Slug, repoSlug: RepoSlug }),
+      success: HttpApiSchema.NoContent,
+      error: [InvalidRequestError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "v2.devcenter.repos.remove",
+        summary: "Remove repo from group",
+        description: "Move a repository from a workspace group to trash.",
       }),
     ),
   )

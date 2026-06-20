@@ -1,0 +1,10 @@
+@media (max-width: 767px) {
+  .channel-indicator {
+    min-height: 32px;
+    min-width: 44px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
