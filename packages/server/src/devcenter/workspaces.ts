@@ -282,6 +282,34 @@ function safeTrashPath(sourcePath: string, prefix: string, slug: string): string
   return trashTarget
 }
 
+async function clearStateForPaths(paths: string[], groupSlugs?: string[]): Promise<void> {
+  const current = await getState()
+  const sessions = current.recentSessions.filter((s) => !paths.some((p) => s.directory.startsWith(p)))
+
+  if (
+    sessions.length === current.recentSessions.length &&
+    (!groupSlugs || !current.lastGroupSlug || !groupSlugs.includes(current.lastGroupSlug)) &&
+    !paths.some((p) => current.lastWorkspacePath?.startsWith(p)) &&
+    !paths.some((p) => current.lastRepoPath?.startsWith(p))
+  ) {
+    return
+  }
+
+  const update: Partial<DevcenterState> = { recentSessions: sessions }
+
+  if (groupSlugs && current.lastGroupSlug && groupSlugs.includes(current.lastGroupSlug)) {
+    update.lastGroupSlug = undefined
+  }
+  if (current.lastWorkspacePath && paths.some((p) => current.lastWorkspacePath?.startsWith(p))) {
+    update.lastWorkspacePath = undefined
+  }
+  if (current.lastRepoPath && paths.some((p) => current.lastRepoPath?.startsWith(p))) {
+    update.lastRepoPath = undefined
+  }
+
+  await updateState(update)
+}
+
 export async function deleteGroup(slug: string): Promise<void> {
   const groupPath = safeWorkspacePath(WORKSPACES_DIR, slug)
   const stat = await fs.stat(groupPath).catch(() => null)
@@ -298,6 +326,8 @@ export async function deleteGroup(slug: string): Promise<void> {
     slug,
     deletedAt: Date.now(),
   })
+
+  await clearStateForPaths([groupPath], [slug])
 }
 
 export async function deleteRepo(groupSlug: string, repoSlug: string): Promise<void> {
@@ -320,6 +350,8 @@ export async function deleteRepo(groupSlug: string, repoSlug: string): Promise<v
     slug: repoSlug,
     deletedAt: Date.now(),
   })
+
+  await clearStateForPaths([repoPath])
 }
 
 const DEVCENTER_DIR = path.join(WORKSPACES_DIR, ".devcenter")

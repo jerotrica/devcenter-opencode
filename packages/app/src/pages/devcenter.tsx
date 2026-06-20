@@ -4,10 +4,12 @@ import { base64Encode } from "@opencode-ai/core/util/encode"
 import * as api from "@/devcenter/api"
 import type { DevcenterGroup, DevcenterRepo } from "@/devcenter/types"
 import { Button } from "@opencode-ai/ui/button"
+import { useLayout } from "@/context/layout"
 import "./devcenter.css"
 
 const Devcenter: Component = () => {
   const navigate = useNavigate()
+  const layout = useLayout()
   const [groups, { refetch: refetchGroups }] = createResource(api.listGroups)
   const [selectedSlug, setSelectedSlug] = createSignal<string | null>(null)
   const [repos, { refetch: refetchRepos }] = createResource(
@@ -99,6 +101,12 @@ const Devcenter: Component = () => {
     setError("")
     try {
       await api.deleteGroup(group.slug)
+      const groupPath = group.path
+      for (const project of layout.projects.list()) {
+        if (project.worktree === groupPath || project.worktree.startsWith(groupPath + "/")) {
+          layout.projects.close(project.worktree)
+        }
+      }
       setSelectedSlug(null)
       await refetchGroups()
     } catch (e) {
@@ -113,6 +121,12 @@ const Devcenter: Component = () => {
     setError("")
     try {
       await api.deleteRepo(slug, repo.slug)
+      const repoPath = repo.path
+      for (const project of layout.projects.list()) {
+        if (project.worktree === repoPath) {
+          layout.projects.close(project.worktree)
+        }
+      }
       await refetchRepos()
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete repo")
