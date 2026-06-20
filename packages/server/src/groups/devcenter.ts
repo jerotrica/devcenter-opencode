@@ -146,6 +146,69 @@ export const DevcenterGroup = HttpApiGroup.make("server.devcenter")
       }),
     ),
   )
+  .add(
+    HttpApiEndpoint.get("devcenter.state.get", "/api/devcenter/state", {
+      success: Schema.Struct({
+        lastGroupSlug: Schema.optional(Schema.String),
+        lastWorkspacePath: Schema.optional(Schema.String),
+        lastRepoPath: Schema.optional(Schema.String),
+        recentSessions: Schema.Array(
+          Schema.Struct({
+            server: Schema.String,
+            directory: Schema.String,
+            sessionId: Schema.String,
+            at: Schema.Number,
+          }),
+        ),
+      }),
+      error: [InvalidRequestError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "v2.devcenter.state.get",
+        summary: "Get DevCenter state",
+        description: "Get persisted DevCenter state including recent sessions.",
+      }),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.post("devcenter.state.update", "/api/devcenter/state", {
+      payload: Schema.Struct({
+        lastGroupSlug: Schema.optional(Schema.String),
+        lastWorkspacePath: Schema.optional(Schema.String),
+        lastRepoPath: Schema.optional(Schema.String),
+        recentSessions: Schema.optional(
+          Schema.Array(
+            Schema.Struct({
+              server: Schema.String,
+              directory: Schema.String,
+              sessionId: Schema.String,
+              at: Schema.Number,
+            }),
+          ),
+        ),
+      }),
+      success: Schema.Struct({
+        lastGroupSlug: Schema.optional(Schema.String),
+        lastWorkspacePath: Schema.optional(Schema.String),
+        lastRepoPath: Schema.optional(Schema.String),
+        recentSessions: Schema.Array(
+          Schema.Struct({
+            server: Schema.String,
+            directory: Schema.String,
+            sessionId: Schema.String,
+            at: Schema.Number,
+          }),
+        ),
+      }),
+      error: [InvalidRequestError, ConflictError],
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "v2.devcenter.state.update",
+        summary: "Update DevCenter state",
+        description: "Update persisted DevCenter state.",
+      }),
+    ),
+  )
   .annotateMerge(
     OpenApi.annotations({
       title: "devcenter",

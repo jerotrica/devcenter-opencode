@@ -22,3 +22,17 @@ export type DevcenterError = {
   error: string
   message: string
 }
+
+export type DevcenterRecentSession = {
+  server: string
+  directory: string
+  sessionId: string
+  at: number
+}
+
+export type DevcenterState = {
+  lastGroupSlug?: string
+  lastWorkspacePath?: string
+  lastRepoPath?: string
+  recentSessions: DevcenterRecentSession[]
+}

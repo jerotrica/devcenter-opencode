@@ -1,4 +1,4 @@
-import type { DevcenterGroup, DevcenterRepo, DevcenterError } from "./types"
+import type { DevcenterGroup, DevcenterRepo, DevcenterState, DevcenterError } from "./types"
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -63,4 +63,15 @@ export async function deleteGroup(slug: string): Promise<void> {
 
 export async function deleteRepo(groupSlug: string, repoSlug: string): Promise<void> {
   await request(`/api/devcenter/groups/${groupSlug}/repos/${repoSlug}`, { method: "DELETE" })
+}
+
+export async function getState(): Promise<DevcenterState> {
+  return request("/api/devcenter/state")
+}
+
+export async function updateState(patch: Partial<DevcenterState>): Promise<DevcenterState> {
+  return request("/api/devcenter/state", {
+    method: "POST",
+    body: JSON.stringify(patch),
+  })
 }

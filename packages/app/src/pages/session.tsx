@@ -268,6 +268,24 @@ export default function Page() {
     ),
   )
 
+  createEffect(
+    on(
+      () => params.id,
+      (id) => {
+        if (!id || !params.dir) return
+        const dir = atob(params.dir)
+        if (!dir) return
+        import("@/devcenter/api").then((api) => {
+          api.getState().then((s) => {
+            const existing = s.recentSessions.filter((r) => r.sessionId !== id)
+            existing.unshift({ server: "", directory: dir, sessionId: id, at: Date.now() })
+            api.updateState({ recentSessions: existing.slice(0, 12) })
+          }).catch(() => {})
+        }).catch(() => {})
+      },
+    ),
+  )
+
   const isDesktop = createMediaQuery("(min-width: 768px)")
   const size = createSizing()
   const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened())

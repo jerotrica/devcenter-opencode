@@ -83,5 +83,17 @@ export const DevcenterHandler = HttpApiBuilder.group(Api, "server.devcenter", (h
           catch: toError,
         }).pipe(Effect.as(HttpApiSchema.NoContent.make())),
       )
+      .handle("devcenter.state.get", () =>
+        Effect.tryPromise({
+          try: () => workspaces.getState(),
+          catch: toError,
+        }),
+      )
+      .handle("devcenter.state.update", (ctx) =>
+        Effect.tryPromise({
+          try: () => workspaces.updateState(ctx.payload),
+          catch: toError,
+        }),
+      )
   }),
 )

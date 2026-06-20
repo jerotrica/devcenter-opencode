@@ -321,3 +321,43 @@ export async function deleteRepo(groupSlug: string, repoSlug: string): Promise<v
     deletedAt: Date.now(),
   })
 }
+
+const DEVCENTER_DIR = path.join(WORKSPACES_DIR, ".devcenter")
+const STATE_PATH = path.join(DEVCENTER_DIR, "state.json")
+
+export type DevcenterState = {
+  lastGroupSlug?: string
+  lastWorkspacePath?: string
+  lastRepoPath?: string
+  recentSessions: Array<{
+    server: string
+    directory: string
+    sessionId: string
+    at: number
+  }>
+}
+
+const DEFAULT_STATE: DevcenterState = {
+  recentSessions: [],
+}
+
+export async function getState(): Promise<DevcenterState> {
+  try {
+    await fs.mkdir(DEVCENTER_DIR, { recursive: true })
+    const raw = await fs.readFile(STATE_PATH, "utf-8")
+    const parsed = JSON.parse(raw)
+    const sessions = Array.isArray(parsed?.recentSessions) ? parsed.recentSessions.slice(0, 12) : []
+    return { ...DEFAULT_STATE, ...parsed, recentSessions: sessions }
+  } catch {
+    return { ...DEFAULT_STATE }
+  }
+}
+
+export async function updateState(patch: Partial<DevcenterState>): Promise<DevcenterState> {
+  await fs.mkdir(DEVCENTER_DIR, { recursive: true })
+  const current = await getState()
+  const sessions = patch.recentSessions?.slice(0, 12) ?? current.recentSessions.slice(0, 12)
+  const next: DevcenterState = { ...current, ...patch, recentSessions: sessions }
+  await fs.writeFile(STATE_PATH, JSON.stringify(next, null, 2))
+  return next
+}

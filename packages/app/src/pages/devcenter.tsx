@@ -1,4 +1,4 @@
-import { createSignal, createResource, For, Show, type Component } from "solid-js"
+import { createSignal, createResource, createEffect, For, Show, type Component } from "solid-js"
 import { useNavigate } from "@solidjs/router"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import * as api from "@/devcenter/api"
@@ -28,11 +28,23 @@ const Devcenter: Component = () => {
 
   const [error, setError] = createSignal("")
 
+  createEffect(() => {
+    const gs = groups()
+    if (!gs || gs.length === 0 || selectedSlug()) return
+    api.getState().then((s) => {
+      if (s.lastGroupSlug && gs.some((g) => g.slug === s.lastGroupSlug) && !selectedSlug()) {
+        setSelectedSlug(s.lastGroupSlug!)
+      }
+    }).catch(() => {})
+  })
+
   function openGroupSession(group: DevcenterGroup) {
+    api.updateState({ lastGroupSlug: group.slug, lastWorkspacePath: group.path }).catch(() => {})
     navigate(`/${base64Encode(group.path)}/session`)
   }
 
   function openRepoSession(repo: DevcenterRepo) {
+    api.updateState({ lastRepoPath: repo.path }).catch(() => {})
     navigate(`/${base64Encode(repo.path)}/session`)
   }
 
@@ -115,6 +127,7 @@ const Devcenter: Component = () => {
     setNewRepoUrl("")
     setError("")
     setGroupsOpen(false)
+    api.updateState({ lastGroupSlug: slug }).catch(() => {})
   }
 
   function goHome() {
@@ -127,7 +140,7 @@ const Devcenter: Component = () => {
   const showGroupsPanel = () => groupsOpen() || !selectedSlug()
 
   return (
-    <div class="flex flex-col md:flex-row h-full w-full min-h-0 min-w-0">
+    <div class="flex flex-col md:flex-row h-full w-full min-h-0 min-w-0 pb-[env(safe-area-inset-bottom,0px)]">
       <aside class="hidden md:flex md:flex-col md:w-72 md:shrink-0 border-r border-border-base">
         <div class="p-4 border-b border-border-base flex items-center justify-between">
           <div class="min-w-0">
@@ -486,7 +499,7 @@ const GroupView: Component<GroupViewProps> = (props) => {
         </div>
       </Show>
 
-      <div class="flex-1 overflow-y-auto p-3 md:p-4">
+      <div class="flex-1 overflow-y-auto p-3 md:p-4 pb-[env(safe-area-inset-bottom,20px)]">
         <Show when={!props.reposLoading} fallback={<p class="text-sm text-text-muted">Loading...</p>}>
           <Show
             when={props.repos.length}
@@ -495,8 +508,8 @@ const GroupView: Component<GroupViewProps> = (props) => {
             <div class="flex flex-col gap-2">
               <For each={props.repos}>
                 {(repo) => (
-                  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-3 bg-surface-base border border-border-base rounded-md">
-                    <div class="min-w-0">
+                  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 p-3 bg-surface-base border border-border-base rounded-md">
+                    <div class="min-w-0 break-words md:break-normal">
                       <div class="text-sm font-medium text-text-strong truncate">{repo.name}</div>
                       <Show when={repo.git_url}>
                         <div class="text-xs text-text-muted font-mono truncate">{repo.git_url}</div>
@@ -505,12 +518,12 @@ const GroupView: Component<GroupViewProps> = (props) => {
                         <div class="text-xs text-text-muted">branch: {repo.branch}</div>
                       </Show>
                     </div>
-                    <div class="flex flex-col md:flex-row w-full md:w-auto">
+                    <div class="flex flex-row md:flex-row w-full md:w-auto gap-1">
                       <Button
                         size="small"
                         variant="ghost"
                         onClick={() => props.onOpenRepoSession(repo)}
-                        class="w-full md:w-auto min-h-[44px] md:min-h-0"
+                        class="flex-1 md:flex-none min-h-[44px] md:min-h-0"
                       >
                         Open
                       </Button>
@@ -518,7 +531,7 @@ const GroupView: Component<GroupViewProps> = (props) => {
                         size="small"
                         variant="ghost"
                         onClick={() => props.onDeleteRepo(repo)}
-                        class="w-full md:w-auto min-h-[44px] md:min-h-0 text-text-error"
+                        class="flex-1 md:flex-none min-h-[44px] md:min-h-0 text-text-error"
                       >
                         Delete
                       </Button>

@@ -178,6 +178,18 @@ export default function Layout(props: ParentProps) {
     peeked: false,
   })
 
+  createEffect(
+    on(
+      () => location.pathname,
+      () => {
+        if (layout.mobileSidebar.opened()) {
+          layout.mobileSidebar.hide()
+        }
+      },
+      { defer: true },
+    ),
+  )
+
   const updateVersion = () => {
     const state = platform.updater?.state()
     if (state?.status !== "ready") return
