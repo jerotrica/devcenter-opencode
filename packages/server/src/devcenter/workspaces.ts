@@ -329,7 +329,7 @@ export type DevcenterState = {
   lastGroupSlug?: string
   lastWorkspacePath?: string
   lastRepoPath?: string
-  recentSessions: Array<{
+  recentSessions: ReadonlyArray<{
     server: string
     directory: string
     sessionId: string
