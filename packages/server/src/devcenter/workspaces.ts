@@ -3,6 +3,7 @@ import { FileSystem } from "@opencode-ai/core/filesystem"
 import { AbsolutePath } from "@opencode-ai/core/schema"
 import path from "path"
 import fs from "fs/promises"
+import { spawn } from "child_process"
 
 export type DevcenterGroup = {
   slug: string
@@ -186,12 +187,13 @@ export async function createRepo(groupSlug: string, name: string): Promise<Devce
   await fs.mkdir(repoPath, { recursive: true })
 
   // Initialize git repo
-  const { exec } = await import("child_process")
   await new Promise<void>((resolve, reject) => {
-    exec("git init", { cwd: repoPath }, (error) => {
-      if (error) reject(error)
+    const child = spawn("git", ["init"], { cwd: repoPath, stdio: ["ignore", "pipe", "pipe"] })
+    child.on("close", (code) => {
+      if (code !== 0) reject(new Error(`git init exited with code ${code}`))
       else resolve()
     })
+    child.on("error", reject)
   })
 
   const stat = await fs.stat(repoPath)
@@ -221,24 +223,45 @@ export async function cloneRepo(groupSlug: string, name: string, gitUrl: string)
   const repoPath = safeWorkspacePath(group.path, slug)
 
   // Clone
-  const { exec } = await import("child_process")
   await new Promise<void>((resolve, reject) => {
-    exec(`git clone ${gitUrl} ${repoPath}`, { cwd: group.path }, (error) => {
-      if (error) reject(error)
+    const child = spawn("git", ["clone", "--depth", "1", gitUrl, repoPath], {
+      cwd: group.path,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes",
+      },
+    })
+    let stderr = ""
+    child.stderr.on("data", (data) => {
+      stderr += data.toString()
+    })
+    child.on("close", (code) => {
+      if (code !== 0) reject(new Error(stderr || `git clone exited with code ${code}`))
       else resolve()
     })
+    child.on("error", reject)
   })
 
   // Get branch
   let branch: string | undefined
   try {
-    const { stdout } = await new Promise<{ stdout: string }>((resolve, reject) => {
-      exec("git rev-parse --abbrev-ref HEAD", { cwd: repoPath }, (error, stdout) => {
-        if (error) reject(error)
-        else resolve({ stdout: stdout.trim() })
+    const current = await new Promise<string>((resolve, reject) => {
+      const child = spawn("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+        cwd: repoPath,
+        stdio: ["ignore", "pipe", "pipe"],
       })
+      let output = ""
+      child.stdout.on("data", (data) => {
+        output += data.toString()
+      })
+      child.on("close", (code) => {
+        if (code !== 0) reject(new Error(`git rev-parse exited with code ${code}`))
+        else resolve(output.trim())
+      })
+      child.on("error", reject)
     })
-    branch = stdout
+    branch = current
   } catch {
     // Ignore
   }
